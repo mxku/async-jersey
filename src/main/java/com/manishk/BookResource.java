@@ -1,9 +1,13 @@
 package com.manishk;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import jersey.repackaged.com.google.common.util.concurrent.FutureCallback;
+import jersey.repackaged.com.google.common.util.concurrent.Futures;
+import jersey.repackaged.com.google.common.util.concurrent.ListenableFuture;
+import org.glassfish.jersey.server.ManagedAsync;
+
+import javax.ws.rs.*;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 import java.util.Collection;
 
@@ -26,5 +30,25 @@ public class BookResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Book getBook(@PathParam("id") String id){
         return bookDao.getBook(id);
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @ManagedAsync
+    public void addBook(Book book, @Suspended final AsyncResponse response){
+        ListenableFuture<Book> bookFuture = bookDao.addBooksAsync(book);
+        Futures.addCallback(bookFuture, new FutureCallback<Book>() {
+            @Override
+            public void onSuccess(Book book) {
+                response.resume(book);
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                response.resume(throwable);
+            }
+        });
+
     }
 }
